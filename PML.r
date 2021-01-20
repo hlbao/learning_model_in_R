@@ -40,7 +40,3 @@ train_center_scale_nzv <- preProcess(train_na_filter,
 #  - ignored (1)
 #  - scaled (52)
 
-#apply preProcess to produce training data for modeling
-modelTraining <- predict(train_center_scale_nzv, newdata = train_na_filter)
-testingFinal <- predict(train_center_scale_nzv, newdata = testing_na_filter)
-validationFinal <- predict(train_center_scale_nzv, newdata = validation_na_filter)
