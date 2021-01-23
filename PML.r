@@ -40,3 +40,54 @@ train_center_scale_nzv <- preProcess(train_na_filter,
 #  - ignored (1)
 #  - scaled (52)
 
+#apply preProcess to produce training data for modeling
+modelTraining <- predict(train_center_scale_nzv, newdata = train_na_filter)
+testingFinal <- predict(train_center_scale_nzv, newdata = testing_na_filter)
+validationFinal <- predict(train_center_scale_nzv, newdata = validation_na_filter)
+
+set.seed(100000)
+#prepare training scheme
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+
+#train the random forest model
+rfModel <- train(classe ~ ., 
+                 method = "rf", 
+                 data = modelTraining, trControl=control)
+#train the GBM model
+gbmModel <- train(classe ~ ., 
+                  method = "gbm", 
+                  data = modelTraining, trControl=control, verbose = FALSE)
+#train the LDA model
+ldaModel <- train(classe ~ ., 
+                  method = "lda", 
+                  data = modelTraining, trControl=control)
+
+#predict, using the three models
+rfPred <- predict(rfModel, testingFinal)
+gbmPred <- predict(gbmModel, testingFinal)
+ldaPred <- predict(ldaModel, testingFinal)
+
+#combine three prediction sets into one df
+ComboDF <- data.frame(rfPred, gbmPred, ldaPred, classe=testingFinal$classe)
+
+#train stacked Random Forest model
+comboModel <-train(classe ~ ., 
+                   method = "rf", 
+                   data = ComboDF, trControl=control)
+
+#combo model predict
+comboPred <- predict(comboModel, testingFinal)
+
+#finding accuracies for each model
+rfCM <- confusionMatrix(testingFinal$classe, rfPred)$overall['Accuracy']
+gbmCM <- confusionMatrix(testingFinal$classe, gbmPred)$overall['Accuracy']
+ldaCM <- confusionMatrix(testingFinal$classe, ldaPred)$overall['Accuracy']
+comboCM <- confusionMatrix(testingFinal$classe, comboPred)$overall['Accuracy']
+
+#make an accuracy summary table
+AccuracyResults <- data.frame(
+  Model = c('RF', 'GBM', 'LDA', 'Combo'),
+  Accuracy = rbind(rfCM, gbmCM, ldaCM, comboCM)
+)
+#Print Accuracy table
+AccuracyResults
